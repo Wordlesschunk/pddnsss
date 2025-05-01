@@ -149,8 +149,6 @@ function updateOVHWebCloudDatabaseWhitelist(string $oldIp, $newIp): void
 
 function getPublicIp(): string
 {
-//    return '51.9.152.100';
-    
     echo "🌐 Fetching public IP address...\n";
     $externalContent = file_get_contents('http://checkip.dyndns.com/');
     preg_match('/Current IP Address: \[?([:.0-9a-fA-F]+)\]?/', $externalContent, $m);
@@ -160,7 +158,8 @@ function getPublicIp(): string
 
 function getStoredIp(): string
 {
-    return file_get_contents('ip.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    // Read the IP from the file and trim any spaces
+    return trim(file_get_contents('ip.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
 }
 
 function setStoredIp(string $ip): void
