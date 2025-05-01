@@ -87,6 +87,7 @@ function updateCloudflareDNSRecords(): void
                         'content' => getPublicIp(),
                         'ttl' => 1,
                         'proxied' => false,
+                        'comment' => 'Added via PDDNSSS @ '.date('Y-m-d H:i:s')
                     ],
                 ]
             );
@@ -133,7 +134,7 @@ function updateOVHWebCloudDatabaseWhitelist(string $oldIp, $newIp): void
         // Add the new IP to the whitelist
         $response = $ovh->post('/hosting/privateDatabase/'.$_ENV['OVH_DATABASE_SERVICE_NAME'].'/whitelist', [
             'ip' => $newIp,
-            'name' => 'Added via PDDNSSS',
+            'name' => 'Added via PDDNSSS @ '.date('Y-m-d H:i:s'),
             'service' => true,
             'sftp' => true,
         ]);
@@ -158,7 +159,6 @@ function getPublicIp(): string
 
 function getStoredIp(): string
 {
-    // Read the IP from the file and trim any spaces
     return trim(file_get_contents('ip.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
 }
 
