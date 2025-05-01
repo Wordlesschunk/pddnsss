@@ -2,6 +2,7 @@
 require 'vendor/autoload.php';
 
 use GuzzleHttp\Client;
+use Ovh\Api;
 
 function main(): void
 {
@@ -48,7 +49,7 @@ function updateCloudflareDNSRecords(): void
 {
     $cloudflareClient = new Client();
     
-    $domainsToUpdate = json_decode($_ENV['CLOUDFLARE_DOMAINS_JSON'], true);;
+    $domainsToUpdate = json_decode($_ENV['CLOUDFLARE_DOMAINS_JSON'], true);
     
     echo "📡 Updating Cloudflare DNS records...\n";
     
@@ -101,57 +102,46 @@ function updateCloudflareDNSRecords(): void
 
 function updateOVHWebCloudDatabaseWhitelist(string $oldIp, $newIp): void
 {
-    $ovhClient = new Client();
+    $http_client = new Client([
+        'timeout'         => 30,
+        'connect_timeout' => 5,
+    ]);
     
+    // Set up OVH API client with your API credentials
+    $ovh = new Api(
+        $_ENV['OVH_APPLICATION_KEY'],
+        $_ENV['OVH_APPLICATION_SECRET'],
+        $_ENV['OVH_ENDPOINT'],
+        $_ENV['OVH_CONSUMER_KEY'],
+        $http_client
+    );
     try {
         echo "🗑️ Removing old IP ($oldIp) from whitelist...\n";
         
+        // Use the OVH API to remove the old IP from the whitelist
         $cidrIp = strpos($oldIp, ':') !== false ? $oldIp . '/128' : $oldIp . '/32';
         $encodedCidrIp = rawurlencode($cidrIp);
         
-        $response = $ovhClient->request(
-            'DELETE',
-            sprintf(
-                'https://eu.api.ovh.com/v1/hosting/privateDatabase/%s/whitelist/%s',
-                $_ENV['OVH_DATABASE_SERVICE_NAME'],
-                $encodedCidrIp
-            ),
-            [
-                'headers' => ['Authorization' => "Bearer {$_ENV['OVH_BEARER_TOKEN']}"],
-            ]
-        );
+        $response = $ovh->delete('/hosting/privateDatabase/'.$_ENV['OVH_DATABASE_SERVICE_NAME'].'/whitelist/'.$encodedCidrIp);
         
-        if ($response->getStatusCode() !== 200) {
-            echo "❌ Error trying to remove IP: $oldIp\n";
-            
-            return;
+        if ($response) {
+            echo "✅ Removed old IP from OVH whitelist\n";
         }
         
         echo "➕ Adding new IP ($newIp) to whitelist...\n";
-        $dnsRecord = $ovhClient->request(
-            'POST',
-            sprintf(
-                'https://eu.api.ovh.com/v1/hosting/privateDatabase/%s/whitelist',
-                $_ENV['OVH_DATABASE_SERVICE_NAME']
-            ),
-            [
-                'headers' => ['Authorization' => "Bearer {$_ENV['OVH_BEARER_TOKEN']}"],
-                'json' => [
-                    'ip' => $newIp,
-                    'name' => 'Added via PDDNSSS',
-                    'service' => true,
-                    'sftp' => true,
-                ],
-            ]
-        );
         
-        if ($dnsRecord->getStatusCode() !== 200) {
-            echo "❌ Error trying to add IP: $newIp\n";
-            
-            return;
+        // Add the new IP to the whitelist
+        $response = $ovh->post('/hosting/privateDatabase/'.$_ENV['OVH_DATABASE_SERVICE_NAME'].'/whitelist', [
+            'ip' => $newIp,
+            'name' => 'Added via PDDNSSS',
+            'service' => true,
+            'sftp' => true,
+        ]);
+        
+        if ($response) {
+            echo "✅ New IP added to OVH whitelist\n";
         }
         
-        echo "✅ OVH whitelist updated successfully\n";
     } catch (Exception $e) {
         echo "❌ OVH update error: ".$e->getMessage()."\n";
     }
@@ -159,6 +149,8 @@ function updateOVHWebCloudDatabaseWhitelist(string $oldIp, $newIp): void
 
 function getPublicIp(): string
 {
+//    return '51.9.152.100';
+    
     echo "🌐 Fetching public IP address...\n";
     $externalContent = file_get_contents('http://checkip.dyndns.com/');
     preg_match('/Current IP Address: \[?([:.0-9a-fA-F]+)\]?/', $externalContent, $m);
