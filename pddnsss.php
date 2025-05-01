@@ -105,12 +105,16 @@ function updateOVHWebCloudDatabaseWhitelist(string $oldIp, $newIp): void
     
     try {
         echo "🗑️ Removing old IP ($oldIp) from whitelist...\n";
+        
+        $cidrIp = strpos($oldIp, ':') !== false ? $oldIp . '/128' : $oldIp . '/32';
+        $encodedCidrIp = rawurlencode($cidrIp);
+        
         $response = $ovhClient->request(
             'DELETE',
             sprintf(
-                'https://eu.api.ovh.com/v1/hosting/privateDatabase/%s/whitelist/%s%%2F32',
+                'https://eu.api.ovh.com/v1/hosting/privateDatabase/%s/whitelist/%s',
                 $_ENV['OVH_DATABASE_SERVICE_NAME'],
-                $oldIp
+                $encodedCidrIp
             ),
             [
                 'headers' => ['Authorization' => "Bearer {$_ENV['OVH_BEARER_TOKEN']}"],
