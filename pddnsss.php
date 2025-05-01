@@ -3,7 +3,7 @@ require 'vendor/autoload.php';
 
 use GuzzleHttp\Client;
 
-function main()
+function main(): void
 {
     $dotEnv = Dotenv\Dotenv::createImmutable(__DIR__);
     $dotEnv->load();
@@ -15,7 +15,6 @@ function main()
     echo "📄 Stored IP: $storedIp\n";
     echo "🌐 Public IP: $publicIp\n";
     
-    //if there is no stored ip we store it
     if (!$storedIp) {
         setStoredIp($publicIp);
         echo "✅ New IP address stored: $publicIp\n";
@@ -23,7 +22,6 @@ function main()
         return;
     }
     
-    //If the ip matches, we want to do nothing
     if ($storedIp === $publicIp) {
         echo "ℹ️ IP is unchanged. Exiting.\n";
         
